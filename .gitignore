@@ -1,0 +1,8 @@
+*
+!.emacs
+!.gitignore
+!README.md
+!.bashrc
+!.bash_aliases
+!.bash_profile
+!.yasnippets
