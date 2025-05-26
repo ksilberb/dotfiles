@@ -59,9 +59,15 @@
   (recentf-mode 1)
   (savehist-mode 1)
   (save-place-mode 1)
-  (add-to-list 'default-frame-alist '(fullscreen . fullscreen))
+  ;; (add-to-list 'default-frame-alist '(fullscreen . fullscreen))
+  (global-set-key (kbd "C-c q") 'comment-or-uncomment-region)
   :bind
   (("C-x v" . (lambda (&optional n) (interactive "p") (enlarge-window (- (or n 1)))))))
+
+(defun insert-date-header ()
+  "Insert a Markdown header with current date and time."
+  (interactive)
+  (insert (format "# %s\n" (format-time-string "%A, %B, %d, %Y, %I:%M%p"))))
 
 (use-package zenburn-theme
   :config
@@ -117,9 +123,16 @@
 (use-package python
   :straight nil
   :hook ((python-mode . (lambda ()
-			  (make-local-variable 'python-shell-virtualenv-root)))
-	 (inferior-python-mode . (lambda ()
-				   (setq-local completion-at-point-functions '(t))))))
+                          (make-local-variable 'python-shell-virtualenv-root)))
+         (inferior-python-mode . (lambda ()
+                                   (setq-local completion-at-point-functions '(t))))))
+
+(use-package py-vterm-interaction
+  :hook (python-mode . py-vterm-interaction-mode)
+  :config
+  (setq-default py-vterm-interaction-repl-program "ipython")
+  (setq-default py-vterm-interaction-silent-cells t)
+  )
 
 (use-package dired
   :straight (:type built-in)
@@ -182,7 +195,41 @@
   (treesit-auto-add-to-auto-mode-alist 'all)
   (global-treesit-auto-mode))
 
-(use-package vterm)
+(use-package vterm
+  :config
+  (defvar num-vterm 1)
+  (defun rename-vterm-buffer ()
+    (when (eq major-mode 'vterm-mode)
+      (let ((new-name (format "*vterm - %d*" num-vterm)))
+	(rename-buffer new-name t)
+	(setq num-vterm (+ num-vterm 1)))))
+  (add-hook 'vterm-mode-hook #'rename-vterm-buffer))
+
+(use-package ibuffer
+  :bind ("C-x C-b" . ibuffer)
+  :config
+  (require 'ibuf-ext)
+  (setq ibuffer-show-empty-filter-groups nil)
+  (setq ibuffer-default-sorting-mode 'major-mode)
+  (setq ibuffer-formats
+        '((mark modified read-only " "
+                (name 18 18 :left :elide)
+                " "
+                (size 9 -1 :right)
+                " "
+                (mode 16 16 :left :elide)
+                " "
+                project-relative-file))))
+
+(use-package ibuffer-projectile
+  :after (ibuffer projectile)
+  :hook (ibuffer . (lambda ()
+		     (setq ibuffer-filter-groups
+			   (append
+			    '(("Vterm" (mode . vterm-mode)))
+			    (ibuffer-projectile-generate-filter-groups)))
+                     (unless (eq ibuffer-sorting-mode 'alphabetic)
+                       (ibuffer-do-sort-by-alphabetic)))))
 
 (use-package julia-repl
   :config
@@ -201,7 +248,7 @@
 
 (use-package julia-ts-mode
   :mode "\\.jl$")
-  
+
 (use-package lsp-julia
   :config
   (setq lsp-julia-default-environment "/home/kevinsilberberg/.julia/environments/v1.11")
@@ -237,7 +284,6 @@
   (setq atomic-chrome-default-major-mode 'markdown-mode)
 )
 
-
 ; whitespace handling
 (defun set-up-whitespace-handling ()
   (interactive)
@@ -252,3 +298,14 @@
 (add-hook 'python-mode-hook 'set-up-whitespace-handling)
 (add-hook 'c-mode-hook 'set-up-whitespace-handling)
 (add-hook 'yaml-mode-hook 'set-up-whitespace-handling)
+(add-hook 'f90-mode-hook 'set-up-whitespace-handling)
+
+; tab width 
+(add-hook 'f90-mode-hook
+	  (lambda ()
+	    (setq tab-width 4)
+	    (setq f90-do-indent 4)
+	    (setq f90-if-indent 4)
+	    (setq f90-type-indent 4)
+	    (setq f90-program-indent 4)
+	    (setq f90-continuation-indent 4)))

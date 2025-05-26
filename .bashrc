@@ -140,7 +140,6 @@ esac
 export PATH=~/bin:$PATH
 export PATH=~/repos/emacs/src:$PATH
 export LD_LIBRARY_PATH=/usr/local/lib/:$LD_LIBRARY_PATH
-
+export PATH=~/Downloads/go/bin:$PATH
+export PATH=~/repos/lazygit:$PATH
 ~/.ksilb.sh 
-
-alias lock='xdg-screensaver lock'
