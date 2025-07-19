@@ -1,8 +1,17 @@
-alias aseprite='/home/kevinsilberberg/repos/aseprite/build/bin/aseprite'
-alias pluto='julia /home/kevinsilberberg/.runPluto.jl'
-alias emacs='/home/kevinsilberberg/repos/emacs/src/emacs'
-alias lock='xdg-screensaver lock'
-alias cl='clear'
+# Scripts
+alias backup='~/Scripts/backup.sh'
+
+# Find
+alias fd='fdfind'
+
+# List
+alias ll='ls -alF'
+alias la='ls -A'
+alias l='ls -CF'
+
+# Git
 alias ga='git add'
 alias gc='git commit -m'
-alias gp='git push'
+
+# Lock
+alias lk='xdg-screensaver lock'

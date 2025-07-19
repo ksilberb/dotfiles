@@ -1,0 +1,50 @@
+# -*- mode: snippet -*-
+# name: yaml
+# expand-env: ((yas-indent-line 'fixed) (yas-wrap-around-region 'nil))
+# key: ---
+# --
+---
+title: $1
+subtitle: $2
+date: $3
+author:
+  - name: Kevin Silberberg
+    id: ks
+    orcid: 0009-0009-4825-1865
+    email: ksilberb@ucsc.edu
+    affiliation:
+      - name: University of California Santa Cruz
+        city: Santa Cruz
+        state: CA
+        href: https://www.ucsc.edu
+format:
+  html:
+    theme: darkly
+    toc: true
+    code-fold: true
+    code-links:
+      - icon: github
+        href: https://github.com/KevySilb/AM238
+  pdf:
+    pdf-engine: lualatex
+    monofont: "DejaVu Sans Mono"
+    toc: true
+    number-sections: true
+    documentclass: article
+    include-in-header:
+      - text: |
+          \usepackage{amsmath}
+          \usepackage{amsthm}
+          \usepackage{cancel}
+          \usepackage{xcolor}
+          \usepackage{geometry}
+          \usepackage{dirtree}
+          \geometry{margin=1in}
+engine: julia-1.11
+julia:
+  exeflags: ["--project=/home/kevinsilberberg/"]
+execute:
+  daemon: 3600
+  cache: true
+  freeze: auto
+---

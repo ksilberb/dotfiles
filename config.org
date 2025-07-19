@@ -1,0 +1,593 @@
+# -*- mode: org; coding: utf-8; -*-
+#+TITLE: Emacs Configuration
+#+AUTHOR: Kevin Silberberg
+#+PROPERTY: header-args :results silent :tangle "init.el"
+#+AUTO_TANGLE: t
+
+* Lexical Binding
+#+BEGIN_SRC emacs-lisp
+;;; init.el --- emacs init file -*- lexical-binding: t -*-
+#+END_SRC
+
+* Straight
+#+BEGIN_SRC emacs-lisp
+  (defvar bootstrap-version)
+  (let ((bootstrap-file
+         (expand-file-name
+          "straight/repos/straight.el/bootstrap.el"
+          (or (bound-and-true-p straight-base-dir)
+              user-emacs-directory)))
+        (bootstrap-version 7))
+    (unless (file-exists-p bootstrap-file)
+      (with-current-buffer
+          (url-retrieve-synchronously
+           "https://raw.githubusercontent.com/radian-software/straight.el/develop/install.el"
+           'silent 'inhibit-cookies)
+        (goto-char (point-max))
+        (eval-print-last-sexp)))
+    (load bootstrap-file nil 'nomessage))
+
+  (straight-use-package 'use-package)
+  (setq straight-use-package-by-default t
+        package-enable-at-startup nil)
+#+END_SRC
+
+* Emacs
+#+BEGIN_SRC emacs-lisp
+  (use-package emacs
+    :straight nil
+    :custom
+    (enable-recursive-minibuffers t)
+    (read-extended-command-predicate #'command-completion-default-include-p)
+    :init
+    (defun crm-indicator (args)
+      (cons (format "[CRM%s] %s"
+                    (replace-regexp-in-string
+                     "\\`\\[.*?]\\*\\|\\[.*?]\\*\\'" ""
+                     crm-separator)
+                    (car args))
+            (cdr args)))
+    (advice-add #'completing-read-multiple :filter-args #'crm-indicator)
+    (setq minibuffer-prompt-properties
+          '(read-only t cursor-intangible t face minibuffer-prompt))
+    (add-hook 'minibuffer-setup-hook #'cursor-intangible-mode)
+    :config
+    (global-display-line-numbers-mode t)
+    (global-visual-line-mode 1)
+    (global-hl-line-mode 1)
+    (show-paren-mode 1)
+    (set-face-attribute 'default nil :height 140)
+    (scroll-bar-mode -1)
+    (tool-bar-mode -1)
+    (menu-bar-mode -1)
+    (set-fringe-mode 1)
+    (global-auto-revert-mode 1)
+    (display-time-mode t)
+    (recentf-mode 1)
+    (savehist-mode 1)
+    (save-place-mode 1)
+    (electric-pair-mode 1)
+    (setq inhibit-startup-message t
+          visible-bell t
+          gc-cons-threshold (* 100 1024 1024)
+          display-line-numbers-type 'relative
+          history-length 25
+          use-dialog-box nil
+          global-auto-revert-non-file-buffers t
+          show-paren-delay 0)
+    (setq-default indent-tabs-mode nil
+                  tab-width 4
+                  fill-column 80)
+    (global-set-key (kbd "C-c q") 'comment-or-uncomment-region))
+#+END_SRC
+
+* Theme
+#+BEGIN_SRC emacs-lisp
+  (use-package gruber-darker-theme
+    :straight (:type git :host github :repo "rexim/gruber-darker-theme")
+    :config
+    (load-theme 'gruber-darker t))
+#+END_SRC
+
+* Frame
+#+BEGIN_SRC emacs-lisp
+  (use-package frame
+    :straight nil
+    :bind ("C-c t" . toggle-transparency)
+    :config
+    (setq frame-inhibit-implied-resize t)
+    ;; toggle frame transparency between 40% and 100%
+    (defun toggle-transparency ()
+      (interactive)
+      (let ((alpha (frame-parameter nil 'alpha-background)))
+        (set-frame-parameter nil 'alpha-background (if (eq alpha 40) 100 40))
+        (redraw-frame (selected-frame)))))
+#+END_SRC
+
+* File Handling
+#+BEGIN_SRC emacs-lisp
+  (use-package files
+    :straight nil
+    :config
+    ;; follow symlinks without prompting
+    (setq vc-follow-symlinks t
+          ;; large file handling (100mb threshold)
+          large-file-warning-threshold 100000000
+          ;; confirm before visiting non-existent files
+          confirm-nonexistent-file-or-buffer t)
+    ;; enable backup files with version control
+    (setq make-backup-files t
+          ;; don't use hard links for backups
+          backup-by-copying t
+          ;; clean up old backups automatically
+          delete-old-versions t
+          ;; keep 6 newest backup versions
+          kept-new-versions 6
+          ;; keep 2 oldest backup versions
+          kept-old-versions 2
+          ;; use version numbers for backups
+          version-control t
+          ;; store backups in dedicated directory
+          backup-directory-alist `((".*" . ,(expand-file-name "backups/" user-emacs-directory))))
+    ;; store auto-save files in dedicated directory
+    (setq auto-save-file-name-transforms
+          `((".*" ,(expand-file-name "auto-saves/" user-emacs-directory) t)))
+    ;; create backup and auto-save directories
+    (let ((backup-dir (expand-file-name "backups/" user-emacs-directory))
+          (auto-save-dir (expand-file-name "auto-saves/" user-emacs-directory)))
+      (make-directory backup-dir t)
+      (make-directory auto-save-dir t)))
+#+END_SRC
+
+* Custom
+#+BEGIN_SRC emacs-lisp
+  (use-package cus-edit
+    :straight nil
+    :config
+    ;; moves emacs automatically generated custom file
+    (setq custom-file "~/.config/emacs/emacs-custom.el")
+    ;; loads the custom file if it exists
+    (when (file-exists-p custom-file)
+      (load custom-file t)))
+#+END_SRC
+
+* Functions
+#+BEGIN_SRC emacs-lisp
+  (defun insert-timestamp ()
+      (interactive)
+      (let ((timestamp (format-time-string "# %A, %B %d, %Y, %l:%M%p")))
+        (insert (replace-regexp-in-string "  " " " timestamp))))
+#+END_SRC
+
+* Whitespace
+#+BEGIN_SRC emacs-lisp
+  (use-package whitespace
+    :straight nil
+    :config
+    (setq whitespace-style '(face tabs trailing))
+    (set-face-attribute 'whitespace-tab nil
+        :background "red"
+        :foreground "yellow"
+        :weight 'bold)
+    :hook
+    (prog-mode . whitespace-mode)
+    (text-mode . whitespace-mode)
+    (before-save . whitespace-cleanup))
+#+END_SRC
+
+* Eglot
+#+BEGIN_SRC emacs-lisp
+  (use-package eglot
+    :straight nil
+    :init
+    (require 'eglot)
+    :config
+    (setq major-mode-remap-alist (assq-delete-all 'c-mode major-mode-remap-alist)
+          major-mode-remap-alist (assq-delete-all 'c++-mode major-mode-remap-alist)
+          major-mode-remap-alist (assq-delete-all 'c-or-c++-mode major-mode-remap-alist))
+    (add-to-list 'auto-mode-alist '("\\.cpp\\'" . c++-mode))
+    (add-hook 'c-mode-hook 'eglot-ensure)
+    (add-hook 'c++-mode-hook 'eglot-ensure)
+    (add-hook 'c-or-c++-mode-hook 'eglot-ensure)
+    (add-to-list 'eglot-server-programs
+                 '((c++-mode c-mode) . ("/usr/lib/llvm-19/bin/clangd")))
+    )
+#+END_SRC
+
+* Orderless
+#+BEGIN_SRC emacs-lisp
+  (use-package orderless
+    :custom
+    ;; use orderless as primary completion style, fall back to basic
+    (completion-styles '(orderless basic))
+    ;; clean default category-specific completion styles
+    (completion-category-defaults nil)
+    ;; override completion style for files -- partial completion
+    (completion--category-overrides '((file (styles partial-completion)))))
+#+END_SRC
+
+* Vertico
+#+BEGIN_SRC emacs-lisp
+  (use-package vertico
+    :init
+    ;; enable vertico mode globally
+    (vertico-mode 1))
+#+END_SRC
+
+* Marginalia
+#+BEGIN_SRC emacs-lisp
+  (use-package marginalia
+    ;; M-A cycles through completion annotation
+    :bind (:map minibuffer-local-map
+            ("M-A" . marginalia-cycle))
+    :init
+    ;; enable marginalia mode globally
+    (marginalia-mode 1))
+#+END_SRC
+
+* Corfu
+#+BEGIN_SRC emacs-lisp
+  (use-package corfu
+    :custom
+    ;; enable cycling for `corfu-next/previous'
+    (corfu-cycle t)
+    ;; enable auto completion
+    (corfu-auto t)
+    ;; orderless field separator
+    (corfu-separator ?\s)
+    ;; never quit at completion boundary
+    (corfu-quit-at-boundary nil)
+    ;; never quit, even if there is no match
+    ;; (corfu-quit-no-match nil)
+    ;; disable current candidate preview
+    (corfu-preview-current nil)
+    ;; preselect the prompt
+    (corfu-preselect 'prompt)
+    ;; configure handling of exact matches
+    (corfu-on-exact-match nil)
+    ;; use scroll margin
+    (corfu-scroll-margin 5)
+    :init
+    (global-corfu-mode 1))
+#+END_SRC
+
+* Flymake
+#+BEGIN_SRC emacs-lisp
+  (use-package flymake
+    :hook (prog-mode . flymake-mode)
+    :bind (("M-n" . flymake-goto-next-error)
+           ("M-p" . flymake-goto-prev-error)))
+#+END_SRC
+
+* Highlight
+#+BEGIN_SRC emacs-lisp
+    (use-package highlight-symbol
+      :config
+      (setq highlight-symbol-on-navigation-p t)
+      :hook (prog-mode . highlight-symbol-mode))
+
+    (use-package highlight-numbers
+      :hook (prog-mode . highlight-numbers-mode))
+#+END_SRC
+
+* Flycheck Aspell (disabled)
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package flymake-aspell
+    :hook ((text-mode . flymake-aspell-setup)
+           (markdown-mode . flymake-aspell-setup)
+           (poly-quarto-mode . flymake-aspell-setup))
+    :config
+    (setq ispell-program-name "aspell"
+          ispell-dictionary "en_US"
+          ispell-silently-savep t))
+#+END_SRC
+
+* Which-key
+#+BEGIN_SRC emacs-lisp
+  (use-package which-key
+    :config
+    (which-key-mode 1))
+#+END_SRC
+
+* Projectile
+#+BEGIN_SRC emacs-lisp
+  (use-package projectile
+    :config
+    (projectile-mode 1))
+#+END_SRC
+
+* Dired
+#+BEGIN_SRC emacs-lisp
+  (use-package dired
+    :straight (:type built-in)
+    :hook (dired-mode . dired-omit-mode)
+    :custom
+    ;; better listing format
+    (dired-listing-switches "-alho --group-directories-first")
+    ;; DWIM (Do What I Mean) features
+    (dired-dwim-target t)
+    (dired-mouse-drag-files t)
+    ;; recursive operations
+    (dired-recursive-copies 'always)
+    (dired-recursive-deletes 'always)
+    ;; auto-refresh dired buffers
+    (dired-auto-revert-buffer t)
+    ;; kill buffer when selecting new directory
+    (dired-kill-when-opening-new-dired-buffer t)
+    :config
+    ;; human-readable file sizes
+    (setq dired-human-readable-free-space t)
+    :bind (:map dired-mode-map
+           ;; edit filenames directly
+           ("C-c C-e" . wdired-change-to-wdired-mode)
+           ;; if using dired-narrow
+           ("/" . dired-narrow-fuzzy)
+           ;; if using dired-git-info
+           (")" . dired-git-info-mode)))
+
+  ;; extended dired functionality
+  (use-package dired-x
+    :straight (:type built-in)
+    :after dired
+    :config
+    ;; hide dotfiles and common unwanted files
+    (setq dired-omit-files
+          (concat dired-omit-files
+                  "\\|^\\..+$"))
+    ;; guess external programs for file types
+    (setq dired-guess-shell-alist-user
+          '(("\\.png\\|jpe?g\\|gif\\'" "open")
+            ("\\.mp[34]\\'" "open")
+            ("\\.mkv\\|avi\\|mov\\'" "open"))))
+
+  ;; colorful icons (requires all-the-icons package)
+  (use-package all-the-icons-dired
+    :hook (dired-mode . all-the-icons-dired-mode)
+    :config
+    ;; refresh after toggling omit mode
+    (advice-add 'dired-omit-mode :after
+                (lambda (&rest _) (all-the-icons-dired-mode 1))))
+
+  ;; quick filtering
+  (use-package dired-narrow
+    :bind (:map dired-mode-map
+           ("/" . dired-narrow-fuzzy)
+           ("C-/" . dired-narrow-regexp)))
+
+  ;; git integration
+  (use-package dired-git-info
+    :bind (:map dired-mode-map
+           (")" . dired-git-info-mode)))
+
+  ;; async operations for large files
+  (use-package async
+    :config
+    (dired-async-mode 1))
+
+  ;; collapse subdirectories
+  (use-package dired-collapse
+    :hook (dired-mode . dired-collapse-mode))
+
+  ;; quick previews
+  (use-package dired-preview
+    :config
+    ;; enable automatic preview
+    (setq dired-preview-delay 0.2)
+    :bind (:map dired-mode-map
+           ("C-c C-p" . dired-preview-mode)))
+
+  ;; better sorting options
+  (use-package dired-quick-sort
+    :bind (:map dired-mode-map
+           ("S" . hydra-dired-quick-sort/body)))
+
+  ;; rsync for dired mode
+  (use-package dired-rsync
+    :bind (:map dired-mode-map
+           ("C-c C-r" . dired-rsync))
+    :config
+    ;; rsync configuration
+    (setq dired-rsync-options "-avz --progress"))
+
+  ;; subtree expansion
+  (use-package dired-subtree
+    :bind (:map dired-mode-map
+           ("<tab>" . dired-subtree-toggle)
+           ("<backtab>" . dired-subtree-cycle))
+    :config
+    ;; disable background colors for subdirectories
+    (setq dired-subtree-use-backgrounds nil
+          ;; increase indentation
+          dired-subtree-line-prefix "      "))
+#+END_SRC
+
+* All the Icons
+#+BEGIN_SRC emacs-lisp
+  (use-package all-the-icons)
+
+  (use-package all-the-icons-dired
+    :hook (dired-mode . all-the-icons-dired-mode))
+
+  (use-package all-the-icons-ibuffer
+    :init (all-the-icons-ibuffer-mode 1)
+    :hook (ibuffer-mode . all-the-icons-ibuffer-mode))
+#+END_SRC
+
+* Treesit Auto (disabled)
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package treesit-auto
+    :custom
+    (treesit-auto-install 'prompt)
+    :config
+    (treesit-auto-add-to-auto-mode-alist 'all)
+    (global-treesit-auto-mode))
+#+END_SRC
+
+* Yas-snippets
+#+BEGIN_SRC emacs-lisp
+  (use-package yasnippet
+    :init
+    (setq yas-snippet-dirs '("~/.emacs.d/snippets"))
+    :config
+    (setq yas-triggers-in-field t)
+    (yas-global-mode 1)
+    (add-hook 'after-save-hook
+          (lambda ()
+            (when (string-prefix-p (expand-file-name "~/.emacs.d/snippets")
+                       (or buffer-file-name ""))
+          (yas-reload-all)))))
+#+END_SRC
+
+* Vterm
+#+BEGIN_SRC emacs-lisp
+  (use-package vterm
+    :config
+    (defvar num-vterm 1)
+    (defun rename-vterm-buffer ()
+      (when (and (eq major-mode 'vterm-mode)
+             (not (string-match-p "julia" (buffer-name))))
+        (let ((new-name (format "*vterm - %d*" num-vterm)))
+      (rename-buffer new-name t)
+      (setq num-vterm (+ num-vterm 1)))))
+    (add-hook 'vterm-mode-hook #'rename-vterm-buffer))
+#+END_SRC
+
+* IBuffer
+#+BEGIN_SRC emacs-lisp
+  (use-package ibuffer
+    :bind ("C-x C-b" . ibuffer)
+    :config
+    (require 'ibuf-ext)
+    (setq ibuffer-show-empty-filter-groups nil)
+    (setq ibuffer-default-sorting-mode 'major-mode)
+    (setq ibuffer-formats
+          '((mark modified read-only " "
+                  (name 18 18 :left :elide)
+                  " "
+                  (size 9 -1 :right)
+                  " "
+                  (mode 16 16 :left :elide)
+                  " "
+                  project-relative-file))))
+  ;; project aware grouping to ibuffer
+  (use-package ibuffer-projectile
+    :after (ibuffer projectile)
+    :hook (ibuffer . (lambda ()
+               (setq ibuffer-filter-groups
+                 (append
+                  '(("Vterm" (mode . vterm-mode)))
+                  (ibuffer-projectile-generate-filter-groups)))
+                       (unless (eq ibuffer-sorting-mode 'alphabetic)
+                         (ibuffer-do-sort-by-alphabetic)))))
+#+END_SRC
+
+* Quarto
+#+BEGIN_SRC emacs-lisp
+  (use-package quarto-mode
+    :mode
+    ("\\.qmd\\'" . poly-quarto-mode)
+    :bind ("C-c d" . insert-timestamp)
+    :hook
+    (poly-quarto-mode . (lambda () (electric-pair-mode -1))))
+#+END_SRC
+
+* Julia TS (disabled)
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package julia-ts-mode
+    :mode "\\.jl\\'")
+#+END_SRC
+
+* Julia Repl (disabled)
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package julia-repl
+    :config
+    (add-to-list 'vterm-eval-cmds '("julia-repl--show")))
+#+END_SRC
+
+* Julia Snail (disabled)
+#+BEGIN_SRC emacs-lisp :tangle no
+  (use-package julia-snail
+    :custom
+    (julia-snail-terminal-type :vterm)
+    (julia-snail-repl-backend 'vterm)
+    :config
+    (add-hook 'julia-ts-mode-hook #'julia-snail-mode))
+#+END_SRC
+
+* Julia Mode
+#+BEGIN_SRC emacs-lisp
+  (use-package julia-mode)
+#+END_SRC
+
+* Julia Vterm
+#+BEGIN_SRC emacs-lisp
+  (use-package julia-vterm
+    :hook (julia-mode . julia-vterm-mode))
+#+END_SRC
+
+* Julia Eglot
+#+BEGIN_SRC emacs-lisp
+  (use-package eglot-jl
+    :after julia-mode
+    :init
+    (eglot-jl-init)
+    :hook (julia-mode . eglot-ensure)
+    :config
+    (setq eglot-connect-timeout 60)
+    (setq eglot-autoshutdown t)
+    (setq eglot-confirm-server-initiated-edits nil))
+#+END_SRC
+
+* Python
+#+BEGIN_SRC emacs-lisp
+  (use-package python
+    :straight nil
+    :hook ((python-mode . (lambda ()
+                            (make-local-variable 'python-shell-virtualenv-root)))
+           (inferior-python-mode . (lambda ()
+                                     (setq-local completion-at-point-functions '(t))))))
+
+  (use-package py-vterm-interaction
+    :hook (python-mode . py-vterm-interaction-mode)
+    :config
+    (setq-default py-vterm-interaction-repl-program "ipython")
+    (setq-default py-vterm-interaction-silent-cells t)
+    )
+
+  ;; use pyvenv-create then do venv-workon
+  (use-package pyvenv
+    :config)
+#+END_SRC
+
+* Fortran
+#+BEGIN_SRC emacs-lisp
+  (use-package f90
+    :straight nil
+    :hook (f90-mode . (lambda ()
+                        (setq tab-width 4
+                              f90-do-indent 4
+                              f90-if-indent 4
+                              f90-type-indent 4
+                              f90-program-indent 4
+                              f90-continuation-indent 4)))
+    )
+#+END_SRC
+
+* Yaml
+#+BEGIN_SRC emacs-lisp
+  (use-package yaml-ts-mode
+    :straight nil
+    :hook (yaml-mode . (lambda ()
+                         (setq tab-width 2))))
+#+END_SRC
+
+* C/C++
+#+BEGIN_SRC emacs-lisp
+    (use-package cc-mode
+      :config
+      (add-to-list 'auto-mode-alist '("\\.h$" . c++-mode))
+      (setq c-default-style "stroustrup"
+            c-basic-indent 4
+            c-basic-offset 4)
+      (c-set-offset 'innamespace 0))
+#+END_SRC
