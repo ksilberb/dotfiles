@@ -1,6 +1,3 @@
-# Scripts
-alias backup='~/Scripts/backup.sh'
-
 # Find
 alias fd='fdfind'
 
@@ -12,6 +9,9 @@ alias l='ls -CF'
 # Git
 alias ga='git add'
 alias gc='git commit -m'
+alias gp='git push'
+alias gs='git status'
+alias gl='git log'
 
 # Lock
 alias lk='xdg-screensaver lock'

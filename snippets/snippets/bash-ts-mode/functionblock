@@ -1,0 +1,7 @@
+# -*- mode: snippet -*-
+# name: functionblock
+# key: fu
+# --
+$1 () {
+   $2
+}
